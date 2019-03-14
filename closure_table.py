@@ -10,11 +10,15 @@ class ClosureTable:
     def build_schema(self, conn):
         cursor = conn.cursor()
         cursor.executescript('''
+            DROP TABLE IF EXISTS data_table;
+            DROP TABLE IF EXISTS tree;
+            
             -- Our data
             CREATE TABLE data_table
                     (id INTEGER PRIMARY KEY,
                     updated DATE NOT NULL,
-                    version INTEGER NOT NULL DEFAULT 1);
+                    version INTEGER NOT NULL DEFAULT 1,
+                    dummy INTEGER);
 
             -- Closure table that keeps track of the tree
             CREATE TABLE tree(
@@ -56,7 +60,7 @@ class ClosureTable:
         self.cursor.execute('''
             SELECT dta.* FROM data_table dta
             JOIN tree t ON (dta.id = t.parent) WHERE t.child = ? AND depth = 1''', (rownum,))
-        return self.cursor.fetchone()[0]
+        return self.cursor.fetchone()
 
     def select_children(self, rownum):
         self.cursor.execute('''
