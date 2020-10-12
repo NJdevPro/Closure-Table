@@ -5,4 +5,6 @@ A closure table is a table that permits to represent hierarchical data in a SQL 
 
 See for instance: http://technobytz.com/closure_table_store_hierarchical_data.html
 
+This particular program was written for use with SQLite but the SQL is standard and thus adaption for other databases should be straightfowrward.
+
 Published under MIT license
