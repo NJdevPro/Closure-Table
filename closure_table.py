@@ -34,14 +34,17 @@ class ClosureTable:
             ''')
         return cursor
 
+    # return the depth of the tree between the root and this node
     def ancestors_depth(self, rownum):
         result = self.cursor.execute('SELECT MAX(depth) FROM tree WHERE child = ?', (rownum,));
         return result.fetchone()[0]
 
+    # return the depth of the subtree under the node
     def descendants_depth(self, rownum):
         self.cursor.execute('SELECT MAX(depth) FROM tree WHERE parent = ?', (rownum,));
         return self.cursor.fetchone()[0]
 
+    # return the whole subtree at this node
     def select_descendants(self, rownum):
         self.cursor.execute('''
             SELECT dta.* FROM data_table dta
@@ -49,6 +52,7 @@ class ClosureTable:
             ORDER BY depth ASC''', (rownum,))
         return self.cursor.fetchall()
 
+    # return the ancestors of the node
     def select_ancestors(self, rownum):
         self.cursor.execute('''
             SELECT dta.* FROM data_table dta
@@ -56,25 +60,30 @@ class ClosureTable:
             ORDER BY depth DESC''', (rownum,))
         return self.cursor.fetchall()
 
+    # return the immediate parent node
     def select_parent(self, rownum):
         self.cursor.execute('''
             SELECT dta.* FROM data_table dta
             JOIN tree t ON (dta.id = t.parent) WHERE t.child = ? AND depth = 1''', (rownum,))
         return self.cursor.fetchone()
 
+    # return the immediate children
     def select_children(self, rownum):
         self.cursor.execute('''
              SELECT dta.* FROM data_table dta
              JOIN tree t ON (dta.id = t.child) WHERE t.parent = ? AND depth = 1''', (rownum,))
         return self.cursor.fetchall()
 
+    # insert the root node
     def insert_root(self, row_parent):
         self.cursor.execute('INSERT INTO tree(parent, child, depth) VALUES (?,?,0)', (row_parent, row_parent))
 
+    # add a new child to a node
     def insert_child(self, row_parent, row_child):
         self.cursor.execute('INSERT INTO tree(parent, child, depth) VALUES (?,?,0)', (row_child, row_child))
         self.link_child(row_parent, row_child)
 
+    # link a child node/subtree to a new parent
     def link_child(self, row_parent, row_child):
         self.cursor.execute('''
             INSERT OR REPLACE INTO tree(parent, child, depth) 
@@ -82,11 +91,14 @@ class ClosureTable:
                 FROM tree p, tree c
                 WHERE p.child = ? AND c.parent = ?''', (row_parent, row_child))
 
+    # unlink a node from its parent
     def unlink_child(self, row_child):
         self.cursor.execute('DELETE FROM tree WHERE child = ? AND depth = 1', (row_child,))
 
+    # unlink a parent node from its child
     def unlink_parent(self, rownum):
         self.cursor.execute('DELETE FROM tree WHERE parent = ? AND depth = 1', (rownum,))
 
+    # delete a subtree
     def delete_descendants(self, rownum):
         self.cursor.execute('DELETE FROM tree WHERE parent = ? AND child <> ?', (rownum, rownum))
